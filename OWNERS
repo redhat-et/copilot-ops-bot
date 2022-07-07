@@ -1,0 +1,11 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - tumido
+  - harshad16
+reviewers:
+  - tumido
+  - Shreyanand
+  - harshad16
+  - KPostOffice
+  - mimotej

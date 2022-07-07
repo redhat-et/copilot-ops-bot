@@ -1,0 +1,25 @@
+name: Build
+description: Build Probot controller container as an S2I image
+inputs:
+  tags:
+    type: string
+    default: ${{ github.sha }}
+  image:
+    type: string
+    default: controller
+runs:
+  using: "composite"
+  steps:
+    - name: Read S2I base image
+      id: s2ibase
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./.s2ibase
+
+    - name: S2I Build
+      uses: redhat-actions/s2i-build@v2
+      with:
+        path_context: "."
+        builder_image: "${{ steps.s2ibase.outputs.content }}"
+        image: "${{ inputs.image }}"
+        tags: "${{ inputs.tags }}"
