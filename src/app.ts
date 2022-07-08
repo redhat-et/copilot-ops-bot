@@ -15,15 +15,15 @@ const generateTaskPayload = (name: string, context: any) => ({
   apiVersion: 'tekton.dev/v1beta1',
   kind: 'TaskRun',
   metadata: {
-    // "{{name}}" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
+    // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
     // (not necessary for functionality, just for consistency)
-    generateName: `{{name}}-${name}-`,
+    generateName: `copilot-ops-bot-${name}-`,
   },
   spec: {
     taskRef: {
-      // "{{name}}" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
+      // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
       // necessary for functionality
-      name: '{{name}}-' + name,
+      name: 'copilot-ops-bot-' + name,
     },
     params: [
       {

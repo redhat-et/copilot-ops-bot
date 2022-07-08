@@ -10,7 +10,7 @@ resources:
 - serviceaccount.yaml
 - service.yaml
 - servicemonitor.yaml
-namePrefix: "{{name}}-"
+namePrefix: "copilot-ops-bot-"
 configurations:
 - .transformers.yaml
 commonLabels:

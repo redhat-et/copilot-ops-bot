@@ -1,4 +1,4 @@
-# Change mustache escape sequence {{=<% %>=}}
+# Change mustache escape sequence 
 name: Push
 
 on:
@@ -28,22 +28,22 @@ jobs:
         uses: ./.github/actions/build
         with:
           tags: ${{ github.sha }} latest
-          image: "<% image %>"
+          image: "copilot-ops-bot"
 
       - name: Push To Quay
         uses: redhat-actions/push-to-registry@v2
-        if: ${{ github.repository == '<% org %>/<% repo %>'}}
+        if: ${{ github.repository == 'redhat-et/copilot-ops-bot'}}
         with:
-          image: "<% image %>"
+          image: "copilot-ops-bot"
           tags: ${{ github.sha }} latest
-          registry: quay.io/<% quay_org %>
+          registry: quay.io/copilot-ops
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Set expiration
         uses: ./.github/actions/set-expiration
         with:
-          repository: "<% quay_org %>/<% image %>"
+          repository: "copilot-ops/copilot-ops-bot"
           tag: ${{ github.sha }}
           expiration: +1 week
           token: ${{ secrets.QUAY_OAUTH_TOKEN }}

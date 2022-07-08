@@ -5,5 +5,5 @@ resources:
 - controller
 - tasks
 commonLabels:
-  app.kubernetes.io/name: "{{name}}"
-  app.kubernetes.io/managed-by: "{{team}}"
+  app.kubernetes.io/name: "copilot-ops-bot"
+  app.kubernetes.io/managed-by: "platforms-team"

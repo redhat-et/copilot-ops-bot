@@ -1,8 +1,8 @@
 {
-  "name": "{{name}}",
+  "name": "copilot-ops-bot",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://github.com/{{org}}",
+  "homepage": "https://github.com/redhat-et",
   "scripts": {
     "build": "tsc",
     "start": "node lib/index.js",
@@ -12,10 +12,10 @@
     "lint": "prettier --check 'src/**/*.{ts,js}'; eslint src --ext .ts,.js"
   },
   "dependencies": {
+    "@operate-first/probot-issue-form": "1.0.0",
     "@operate-first/probot-kubernetes": "1.0.0",
     "@operate-first/probot-metrics": "1.0.0",
-    "@operate-first/probot-issue-form": "1.0.0",
-    "probot": "12.2.4"
+    "probot": "^12.2.5"
   },
   "devDependencies": {
     "@semantic-release/changelog": "6.0.1",
@@ -30,7 +30,7 @@
     "eslint-config-prettier": "8.5.0",
     "jest": "28.1.1",
     "nock": "13.2.7",
-    "nodemon": "2.0.18",
+    "nodemon": "^2.0.19",
     "prettier": "2.7.1",
     "smee-client": "1.2.3",
     "ts-jest": "28.0.5",

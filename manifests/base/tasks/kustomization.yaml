@@ -5,7 +5,7 @@ resources:
 - example.yaml
 configurations:
 - .transformers.yaml
-namePrefix: "{{name}}-"
+namePrefix: "copilot-ops-bot-"
 commonLabels:
   app.kubernetes.io/component: task
 images:

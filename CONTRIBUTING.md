@@ -1,7 +1,7 @@
 ## Contributing
 
-[fork]: https://github.com/{{org}}/{{repo}}/fork
-[pr]: https://github.com/{{org}}/{{repo}}/compare
+[fork]: https://github.com/redhat-et/copilot-ops-bot/fork
+[pr]: https://github.com/redhat-et/copilot-ops-bot/compare
 [code-of-conduct]: CODE_OF_CONDUCT.md
 [upstream]: https://github.com/kubernetes/test-infra/tree/master/prow/cmd/peribolos
 
@@ -17,7 +17,7 @@ We'd love you to open issues, if they're relevant to this repository: feature re
 
 In particular, if you have a large PR you want to send our way, it may make sense to open an issue to discuss it with the maintainers first.
 
-We also use the label 'help wanted' to show issues we want help on! If you'd like to get started working in this repository, it'd be best to jump into those issues. View those issues [here](https://github.com/{{org}}/{{repo}}/help%20wanted)!
+We also use the label 'help wanted' to show issues we want help on! If you'd like to get started working in this repository, it'd be best to jump into those issues. View those issues [here](https://github.com/redhat-et/copilot-ops-bot/help%20wanted)!
 
 ## Submitting a pull request
 
@@ -105,7 +105,7 @@ Reference: [docs](https://probot.github.io/docs/configuration/)
 ./scripts/build-image.sh
 
 # 2. Start container
-podman run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> {{repo}}
+podman run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> copilot-ops-bot
 ```
 
 #### Run in a Kubernetes cluster
@@ -121,14 +121,14 @@ There are two ways to do this:
     ```sh
     ./scripts/build-image.sh
     podman login quay.io
-    podman push localhost/{{repo}} <quay repo>
+    podman push localhost/copilot-ops-bot <quay repo>
     ```
 
 2. Update `dev` overlay to point to your image and deploy to a connected cluster
 
     ```sh
     pushd manifests/overlays/dev
-    kustomize edit set image quay.io/{{org}}/{{repo}}=<quay repo>
+    kustomize edit set image quay.io/redhat-et/copilot-ops-bot=<quay repo>
     popd
 
     kustomize build manifests/overlays/dev | kubectl apply -f -

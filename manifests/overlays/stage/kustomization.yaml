@@ -7,10 +7,10 @@ configurations:
   - .transformers.yaml
 generators:
   - .ksops.yaml
-namespace: "{{stage-namespace}}"
+namespace: "copilot-ops-bot-stage"
 patchesStrategicMerge:
   - route.yaml
 images:
   - name: controller
-    newName: "{{image}}"
+    newName: "copilot-ops-bot"
     newTag: v1.0.0
