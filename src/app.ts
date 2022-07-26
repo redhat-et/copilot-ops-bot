@@ -1,4 +1,4 @@
-import { Probot } from 'probot';
+import { Probot, Context } from 'probot';
 import { Router } from 'express';
 import { exposeMetrics, useCounter } from '@operate-first/probot-metrics';
 import {
@@ -10,6 +10,8 @@ import {
   updateTokenSecret,
   useApi,
 } from '@operate-first/probot-kubernetes';
+
+const issueForm = require('@operate-first/probot-issue-form');
 
 const generateTaskPayload = (name: string, context: any) => ({
   apiVersion: 'tekton.dev/v1beta1',
@@ -135,6 +137,23 @@ export default (
         method: 'scheduleExampleTaskRun',
       }
     );
+  });
+
+  // app.on("issues.opened", async (context: Context) => {
+  //   const params = context.issue({ body: "Hello World!" });
+
+
+  //   console.log("issue created successfully")
+  //   return context.octokit.issues.createComment(params)
+  // })
+
+  app.on('issues.opened', async(context:Context) => {
+    try {
+      const data = await issueForm.parse(context);
+      console.log(data);
+    } catch {
+      app.log.info('Issue was not created using correct template')
+    }
   });
 
   app.on('installation.deleted', async (context: any) => {

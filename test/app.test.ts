@@ -5,9 +5,15 @@ import nock from 'nock';
 // Requiring our app implementation
 import myProbotApp from '../src/app';
 import { Probot, ProbotOctokit } from 'probot';
+import { assert } from 'console';
+//import { realpathSync } from 'fs';
+//import { REPL_MODE_SLOPPY } from 'repl';
 // Requiring our fixtures
 const fs = require('fs');
 const path = require('path');
+
+const payload = require("./fixtures/issues.opened");
+const issueCreatedBody = { body: "This is a test" };
 
 const privateKey = fs.readFileSync(
   path.join(__dirname, 'fixtures/mock-cert.pem'),
@@ -22,6 +28,7 @@ describe('My Probot app', () => {
     probot = new Probot({
       appId: 123,
       privateKey,
+      githubToken: "test",
       // disable request throttling and retries for testing
       Octokit: ProbotOctokit.defaults({
         retry: { enabled: false },
@@ -31,10 +38,27 @@ describe('My Probot app', () => {
     // Load our app into probot
     probot.load(myProbotApp);
   });
-  test('stub', () => {});
+  
+  test("posting a comment", async() => {
+    nock("https://api.github.com")
+      .post("/app/installations/2/access_tokens")
+      .reply(200, { token: "test" });
+
+    nock("https://api.github.com")
+      .post("/repos/djach7/testbot/issues/new", (body) => {
+        expect(body).toMatchObject(issueCreatedBody);
+        return true;
+      })
+      .reply(200);
+
+    await probot.receive({ name: "issues", payload })
+  });
+
+  
   afterEach(() => {
     nock.cleanAll();
     nock.enableNetConnect();
+    assert(nock.isDone())
   });
 });
 
