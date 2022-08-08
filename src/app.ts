@@ -1,6 +1,9 @@
-import { Probot, Context } from 'probot';
-import { Router } from 'express';
-import { exposeMetrics, useCounter } from '@operate-first/probot-metrics';
+//import { Probot, Context } from 'probot';
+import { Probot } from 'probot';
+import { 
+  // exposeMetrics,
+  useCounter
+} from '@operate-first/probot-metrics';
 import {
   APIS,
   createTokenSecret,
@@ -42,18 +45,20 @@ const generateTaskPayload = (name: string, context: any) => ({
 
 export default (
   app: Probot,
-  {
-    getRouter,
-  }: { getRouter?: ((path?: string | undefined) => Router) | undefined }
+  // {
+  //   getRouter,
+  // }: { getRouter?: ((path?: string | undefined) => Router) | undefined }
 ) => {
+  console.timeLog('entered copilot-ops-bot')
   // Expose additional routes for /healthz and /metrics
-  if (!getRouter) {
-    app.log.error('Missing router.');
-    return;
-  }
-  const router = getRouter();
-  router.get('/healthz', (_, response) => response.status(200).send('OK'));
-  exposeMetrics(router, '/metrics');
+  // if (!getRouter) {
+  //   console.log('router is not defined')
+  //   app.log.error('Missing router.');
+  //   return;
+  // }
+  // const router = getRouter();
+  // router.get('/healthz', (_, response) => response.status(200).send('OK'));
+  // exposeMetrics(router, '/metrics');
 
   // Register tracked metrics
   const numberOfInstallTotal = useCounter({
@@ -97,7 +102,26 @@ export default (
   };
 
   app.onAny((context: any) => {
-    // On any event inc() the counter
+    //console.log("AAAAAAAAAAAAAAAAAAAA\n\n\n\n")
+    //console.log(context.payload)
+    //console.log("typeof action:", context.payload.action )
+    //On any event inc() the counter
+    if (typeof context === 'undefined') {
+      console.log('code is borken')
+      return;
+    }
+    if (typeof context.payload === 'undefined') {
+      console.log('context.payload is undefined, context:', context);
+      return;
+    }
+    if (typeof context.payload.action === 'undefined') {
+      console.log('context.payload.action is undefined, context.payload:', context.payload);
+      return;
+    }
+    if (typeof context.payload.installation === 'undefined') {
+      console.log('context.payload.installation is undefined, context.payload:', context.payload);
+      return;
+    }
     numberOfActionsTotal
       .labels({
         install: context.payload.installation.id,
@@ -107,6 +131,8 @@ export default (
   });
 
   app.on('installation.created', async (context: any) => {
+    console.log("typeof context", typeof context);
+    console.log('typeof context.payload', typeof context.payload);
     numberOfInstallTotal.labels({}).inc();
 
     // Create secret holding the access token
@@ -119,7 +145,7 @@ export default (
   app.on('push', async (context: any) => {
     // Update token in case it expired
     wrapOperationWithMetrics(updateTokenSecret(context), {
-      install: context.payload.installation.id,
+      install: context!.payload!.installation!.id,
       method: 'updateSecret',
     });
 
@@ -144,16 +170,31 @@ export default (
 
 
   //   console.log("issue created successfully")
-  //   return context.octokit.issues.createComment(params)
+  //   //return context.octokit.issues.createComment(params)
   // })
 
-  app.on('issues.opened', async(context:Context) => {
-    try {
+  app.on('issues.opened', async(context) => {
+    //console.log("typeof context:", typeof context);
+    //console.log('typeof context.payload:', typeof context.payload);
+
+    console.log("this is running")
+    // try {
       const data = await issueForm.parse(context);
       console.log(data);
-    } catch {
-      app.log.info('Issue was not created using correct template')
-    }
+    // } catch {
+    //   console.log("broked")
+    //   app.log.info('Issue was not created using correct template')
+    // }
+  });
+
+  // app.on('issues.opened', async(_context) => {
+  //   console.log("issue has been created")
+  //   //console.log(context);
+  // });
+
+  app.on('issue_comment.created', async(_context) => {
+    console.log("dummy test is activating")
+    //app.log.info(context);
   });
 
   app.on('installation.deleted', async (context: any) => {
@@ -161,7 +202,7 @@ export default (
 
     // Delete secret containing the token
     wrapOperationWithMetrics(deleteTokenSecret(context), {
-      install: context.payload.installation.id,
+      install: context.payload.installation!.id,
       method: 'deleteSecret',
     });
   });
