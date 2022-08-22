@@ -2,12 +2,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- example.yaml
+- copilot-ops.yaml
 configurations:
 - .transformers.yaml
 namePrefix: "copilot-ops-bot-"
 commonLabels:
   app.kubernetes.io/component: task
 images:
-- name: example
-  newName: quay.io/operate-first/opf-toolbox:v0.5.0
+- name: copilot-ops
+  newName: quay.io/copilot-ops/copilot-ops:latest

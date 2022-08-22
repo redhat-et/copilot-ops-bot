@@ -1,4 +1,3 @@
-//import { Probot, Context } from 'probot';
 import { Probot } from 'probot';
 import { 
   // exposeMetrics,
@@ -13,10 +12,29 @@ import {
   updateTokenSecret,
   useApi,
 } from '@operate-first/probot-kubernetes';
+import { Octokit } from "@octokit/core";
+import { createPullRequest } from "octokit-plugin-create-pull-request";
+import parseIssueForm from '@operate-first/probot-issue-form';
 
-const issueForm = require('@operate-first/probot-issue-form');
+// import * as k8s from '@kubernetes/client-node';
+// const kc = new k8s.KubeConfig();
+// kc.loadFromDefault();
+// const k8sContext = kc.getCurrentContext();
+// const getNamespace = () => 'copilot-ops-bot';
 
-const generateTaskPayload = (name: string, context: any) => ({
+// import issueForm from '@operate-first/probot-issue-form';
+//import issueForm from '@operate-first/probot-issue-form';
+//const { issueForm } = require('@operate-first/probot-issue-form');
+
+const MyOctokit = Octokit.plugin(createPullRequest);
+const TOKEN = "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";
+const octokit = new MyOctokit({
+  auth: TOKEN,
+});
+
+
+
+const generateTaskRunPayload = (name: string, context: any) => ({
   apiVersion: 'tekton.dev/v1beta1',
   kind: 'TaskRun',
   metadata: {
@@ -28,7 +46,8 @@ const generateTaskPayload = (name: string, context: any) => ({
     taskRef: {
       // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
       // necessary for functionality
-      name: 'copilot-ops-bot-' + name,
+      // name: 'copilot-ops-bot-' + name,
+      name: 'copilot-ops',
     },
     params: [
       {
@@ -83,108 +102,125 @@ export default (
   });
 
   // Simple callback wrapper - executes and async operation and based on the result it inc() operationsTriggered counted
-  const wrapOperationWithMetrics = (callback: Promise<any>, labels: any) => {
-    const response = callback
-      .then(() => ({
-        status: 'Succeeded',
-      }))
-      .catch(() => ({
-        status: 'Failed',
-      }));
-
-    operationsTriggered
-      .labels({
-        ...labels,
-        ...response,
-        operation: 'k8s',
-      })
-      .inc();
+  const wrapOperationWithMetrics = async (promise: Promise<any>, labels: any) => {
+    labels.operation = 'k8s';
+    try {
+      await promise;
+      labels.status = 'Succeeded';
+    } catch (err) {
+      labels.status = 'Failed';
+      console.error('Error', err);
+      throw err;
+    } finally {
+      operationsTriggered.labels(labels).inc();
+    }
   };
 
-  app.onAny((context: any) => {
-    //console.log("AAAAAAAAAAAAAAAAAAAA\n\n\n\n")
-    //console.log(context.payload)
-    //console.log("typeof action:", context.payload.action )
-    //On any event inc() the counter
-    if (typeof context === 'undefined') {
-      console.log('code is borken')
+  app.onAny((context) => {
+    const action = (context?.payload as any)?.action;
+    const install = (context?.payload as any)?.installation?.id;
+    console.log("onAny", action, install);
+    if (!action || !install) {
+      console.log("bad context", context);
       return;
     }
-    if (typeof context.payload === 'undefined') {
-      console.log('context.payload is undefined, context:', context);
-      return;
-    }
-    if (typeof context.payload.action === 'undefined') {
-      console.log('context.payload.action is undefined, context.payload:', context.payload);
-      return;
-    }
-    if (typeof context.payload.installation === 'undefined') {
-      console.log('context.payload.installation is undefined, context.payload:', context.payload);
-      return;
-    }
-    numberOfActionsTotal
-      .labels({
-        install: context.payload.installation.id,
-        action: context.payload.action,
-      })
-      .inc();
+    const labels = { install, action };
+    numberOfActionsTotal.labels(labels).inc();
   });
 
-  app.on('installation.created', async (context: any) => {
-    console.log("typeof context", typeof context);
-    console.log('typeof context.payload', typeof context.payload);
+  app.on('installation.created', async (context) => {
+    console.log("installation.created", context);
     numberOfInstallTotal.labels({}).inc();
 
     // Create secret holding the access token
-    wrapOperationWithMetrics(createTokenSecret(context), {
+    await wrapOperationWithMetrics(createTokenSecret(context), {
       install: context.payload.installation.id,
       method: 'createSecret',
     });
   });
 
-  app.on('push', async (context: any) => {
+ 
+  app.on('issues.opened', async(context) => {
+
+    const install = context!.payload!.installation!.id;
+    
+    const parseIssueInfo = async () => {
+      try {
+        const form = await parseIssueForm(context);
+        if (!form.botInput) return;
+        const issue = context.issue();
+        console.log("issue.opened", issue);
+        return {
+          ...issue,
+          userInput: typeof form.botInput === "string" ? 
+            form.botInput : 
+            form.botInput.join("\n"),
+        };
+      } catch (err) {
+        return;
+      }
+    };
+
+    const issueInfo = await parseIssueInfo();
+    if (!issueInfo) return; // not an issue for us
+
+    console.log("issueInfo", issueInfo);
+    const { owner, repo, issue_number } = issueInfo;
+
+    const head = `copilot-ops-fix-issue-${issue_number}`;
+    const title = `Fixes #${issue_number} by ${owner} with copilot-ops`;
+    const body = `This pull request was generated by the copilot-ops bot using this prompt:
+    ${issueInfo.userInput}`;
+    const changes = [{
+      commit: `Fixes #${issue_number}: creating test.txt to demo pr creation`,
+      files: {
+        "test.txt": "Content for test file",
+      },
+    }];
+    
     // Update token in case it expired
-    wrapOperationWithMetrics(updateTokenSecret(context), {
-      install: context!.payload!.installation!.id,
+    console.log('updateSecret', getNamespace());
+    await wrapOperationWithMetrics(updateTokenSecret(context), {
+      install,
       method: 'updateSecret',
     });
-
+    
     // Trigger example taskrun
-    wrapOperationWithMetrics(
+    console.log('scheduleTaskRun', getNamespace());
+    await wrapOperationWithMetrics(
       useApi(APIS.CustomObjectsApi).createNamespacedCustomObject(
         'tekton.dev',
         'v1beta1',
         getNamespace(),
         'taskruns',
-        generateTaskPayload('example', context)
+        generateTaskRunPayload(head, context)
       ),
       {
-        install: context.payload.installation.id,
-        method: 'scheduleExampleTaskRun',
+        install,
+        method: 'scheduleTaskRun',
       }
     );
-  });
-
-  // app.on("issues.opened", async (context: Context) => {
-  //   const params = context.issue({ body: "Hello World!" });
 
 
-  //   console.log("issue created successfully")
-  //   //return context.octokit.issues.createComment(params)
-  // })
-
-  app.on('issues.opened', async(context) => {
-    //console.log("typeof context:", typeof context);
-    //console.log('typeof context.payload:', typeof context.payload);
-
-    console.log("this is running")
-    // try {
-      const data = await issueForm.parse(context);
-      console.log(data);
-    // } catch {
-    //   console.log("broked")
-    //   app.log.info('Issue was not created using correct template')
-    // }
+    if (false) {
+      const pr = await octokit.createPullRequest({
+        owner,
+        repo,
+        title,
+        head,
+        body,
+        update: true,
+        changes,
+      });
+     
+      if (!pr) {
+        console.log("no pr !?");
+        return;
+      }
+   
+      console.log(pr!.data.number);
+    }
+    
   });
 
   // app.on('issues.opened', async(_context) => {
@@ -198,10 +234,11 @@ export default (
   });
 
   app.on('installation.deleted', async (context: any) => {
+    console.log("installation.deleted", context);
     numberOfUninstallTotal.labels({}).inc();
 
     // Delete secret containing the token
-    wrapOperationWithMetrics(deleteTokenSecret(context), {
+    await wrapOperationWithMetrics(deleteTokenSecret(context), {
       install: context.payload.installation!.id,
       method: 'deleteSecret',
     });
