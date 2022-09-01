@@ -1,0 +1,3 @@
+[submodule "copilot-ops"]
+	path = copilot-ops
+	url = https://github.com/redhat-et/copilot-ops/

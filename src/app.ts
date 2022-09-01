@@ -16,18 +16,8 @@ import { Octokit } from "@octokit/core";
 import { createPullRequest } from "octokit-plugin-create-pull-request";
 import parseIssueForm from '@operate-first/probot-issue-form';
 
-// import * as k8s from '@kubernetes/client-node';
-// const kc = new k8s.KubeConfig();
-// kc.loadFromDefault();
-// const k8sContext = kc.getCurrentContext();
-// const getNamespace = () => 'copilot-ops-bot';
-
-// import issueForm from '@operate-first/probot-issue-form';
-//import issueForm from '@operate-first/probot-issue-form';
-//const { issueForm } = require('@operate-first/probot-issue-form');
-
 const MyOctokit = Octokit.plugin(createPullRequest);
-const TOKEN = "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";
+const TOKEN = "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";
 const octokit = new MyOctokit({
   auth: TOKEN,
 });
@@ -47,9 +37,21 @@ const generateTaskRunPayload = (name: string, context: any) => ({
       // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
       // necessary for functionality
       // name: 'copilot-ops-bot-' + name,
-      name: 'copilot-ops',
+      name: 'copilot-ops-task',
     },
     params: [
+      {
+        name: 'REPO_NAME' ,
+        value: context.issue().repo,
+      },
+      {
+        name: 'ISSUE_NUMBER',
+        value: context.issue().issue_number,
+      },
+      {
+        name: 'ISSUE_OWNER',
+        value: context.issue().owner,
+      },
       {
         name: 'SECRET_NAME',
         value: getTokenSecretName(context),
@@ -128,8 +130,8 @@ export default (
     numberOfActionsTotal.labels(labels).inc();
   });
 
+  // secret is created when this event runs
   app.on('installation.created', async (context) => {
-    console.log("installation.created", context);
     numberOfInstallTotal.labels({}).inc();
 
     // Create secret holding the access token
@@ -139,6 +141,10 @@ export default (
     });
   });
 
+  app.onError((e) => {
+    console.log('error:', e.message);
+    console.log(`error on event: ${e.event.name}, id: ${e.event.id}`);
+  })
  
   app.on('issues.opened', async(context) => {
 
@@ -157,6 +163,7 @@ export default (
             form.botInput.join("\n"),
         };
       } catch (err) {
+        console.log("An error has occurred.")
         return;
       }
     };
@@ -177,13 +184,23 @@ export default (
         "test.txt": "Content for test file",
       },
     }];
-    
+
     // Update token in case it expired
     console.log('updateSecret', getNamespace());
-    await wrapOperationWithMetrics(updateTokenSecret(context), {
-      install,
-      method: 'updateSecret',
+    console.log('updating secret...')
+    await wrapOperationWithMetrics(
+      updateTokenSecret(context).catch(e => {
+        console.log('caught error while updating token: ', e)
+        console.log('event context: ', );
+      }), {
+        install,
+        method: 'updateSecret',
+    }).then(() => {
+      console.log('secret successfully updated')
+    }).catch(e => {
+      console.log('got error', e)
     });
+    console.log("update secret done")
     
     // Trigger example taskrun
     console.log('scheduleTaskRun', getNamespace());
@@ -223,18 +240,11 @@ export default (
     
   });
 
-  // app.on('issues.opened', async(_context) => {
-  //   console.log("issue has been created")
-  //   //console.log(context);
-  // });
-
   app.on('issue_comment.created', async(_context) => {
     console.log("dummy test is activating")
-    //app.log.info(context);
   });
 
   app.on('installation.deleted', async (context: any) => {
-    console.log("installation.deleted", context);
     numberOfUninstallTotal.labels({}).inc();
 
     // Delete secret containing the token
