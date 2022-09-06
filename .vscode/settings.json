@@ -1,0 +1,7 @@
+{
+    "jest.jestCommandLine": "npm test",
+    "yaml.schemas": {
+        "kubernetes://schema/tekton.dev/v1beta1@task": "file:///home/djachimo/copilot-ops-bot/manifests/base/tasks/run.yaml",
+        "https://json.schemastore.org/kustomization.json": "file:///home/djachimo/copilot-ops-bot/manifests/base/tasks/kustomization.yaml"
+    }
+}

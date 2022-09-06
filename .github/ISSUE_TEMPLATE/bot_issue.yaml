@@ -1,0 +1,8 @@
+name: Issue For Bot
+description: File an issue report for the copilot-ops bot
+title: "[Bot issue]: "
+body: 
+  - type: input
+    id: botInput
+    attributes:
+      label: Input prompt for copilot-ops bot here

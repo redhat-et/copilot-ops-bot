@@ -2,17 +2,20 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: example
+  name: copilot-ops
 spec:
   params:
+    - name: REPO_NAME
+      type: string
+      default: ".github"
     - name: CONTEXT
       type: string
       default: ""
     - name: SECRET_NAME
       type: string
   steps:
-    - name: example
-      image: example
+    - name: copilot-ops
+      image: localhost/copilot-ops/copilot-ops
       volumeMounts:
         - mountPath: /mnt/secret
           name: github-token
@@ -25,20 +28,30 @@ spec:
         - name: APP_ID
           valueFrom:
             secretKeyRef:
-              name: peribolos-controller
+              name: copilot-ops
               key: app_id
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
               name: $(params.SECRET_NAME)
               key: token
-      script: |
-        #!/bin/sh
+      command: ["/bin/bash"]
+      args:
+        - "-c"
+        - |
+          #!/bin/sh
 
-        echo "Org name: $ORG_NAME"
-        echo "App ID: $APP_ID"
-        echo "Event context:"
-        echo '$(params.CONTEXT)' | yq e -P -
+          # Clone repository
+          echo "Cloning repository..."
+          git clone https://x-access-token:$GITHUB_TOKEN@github.com/$ORG_NAME/$(params.REPO_NAME)
+          cd $(params.REPO_NAME)
+
+          echo "Context: $(params.CONTEXT)"
+          # Run Copilot-ops on the repository
+          /copilot-ops --help
+
+          # octokit.createPullRequest()
+
   volumes:
     - name: github-token
       secret:
