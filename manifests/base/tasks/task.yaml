@@ -1,0 +1,73 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  # // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
+  # // (not necessary for functionality, just for consistency)
+  name: 'copilot-ops-task'
+spec: 
+  params:
+  - name: REPO_NAME
+    type: string
+    default: ".github"
+  - name: ISSUE_NUMBER
+    type: string
+  - name: ISSUE_OWNER
+    type: string
+  - name: 'SECRET_NAME'
+  - name: 'CONTEXT'
+  steps:
+    - image: 'quay.io/copilot-ops/copilot-ops:local-build'
+      name: 'copilot-ops-execution'
+      env: 
+        - name: ORG_NAME
+          valueFrom:
+            secretKeyRef:
+              name: $(params.SECRET_NAME)
+              key: orgName
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.SECRET_NAME)
+              key: token
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai
+              key: api_key
+        - name: OPENAI_ORG_ID
+          valueFrom:
+            secretKeyRef:
+              name: openai
+              key: org_id
+      script: |
+        branchName="copilot-ops-fix-issue-$(params.ISSUE_NUMBER)"
+
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
+
+        echo "Cloning repository..."
+        # Clone repository
+        git clone https://x-access-token:$GITHUB_TOKEN@github.com/$ORG_NAME/$(params.REPO_NAME)
+        cd $(params.REPO_NAME)
+
+        git remote -v
+
+        git switch -c "${branchName}"
+        git reset --hard main
+        
+        /copilot-ops generate --request 'this will be the prompt' --write --openai-url 'https://api.openai.com'
+        # echo blah blah > david.david
+
+        git add .
+        git commit -m "The glorious copilot-ops has solved all your issues"
+        git push -f --set-upstream origin "${branchName}"
+
+        curl -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -d '{
+            "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
+            "body":"Fixes #$(params.ISSUE_NUMBER) \nThis pull request was generated copilot-ops using this prompt: ",
+            "head":"'$branchName'",
+            "base":"main"
+          }' https://api.github.com/repos/$ORG_NAME/$(params.REPO_NAME)/pulls

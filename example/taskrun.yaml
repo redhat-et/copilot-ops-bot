@@ -3,7 +3,7 @@
   metadata:
     # // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
     # // (not necessary for functionality, just for consistency)
-    name: 'copilot-ops-task'
+    name: 'copilot-ops-task-deprecated'
   spec: 
     params:
     - name: REPO_NAME
@@ -46,6 +46,7 @@
           git reset --hard main
           # copilot-ops generate --request 'this will be the prompt' --write
           # need to get openAI token here
+
           echo blah blah > david.david
 
           git add .
