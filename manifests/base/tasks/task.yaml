@@ -14,7 +14,8 @@ spec:
   - name: ISSUE_OWNER
     type: string
   - name: 'SECRET_NAME'
-  - name: 'CONTEXT'
+  - name: 'USER_INPUT'
+    type: string
   steps:
     - image: 'quay.io/copilot-ops/copilot-ops:local-build'
       name: 'copilot-ops-execution'
@@ -55,7 +56,7 @@ spec:
         git switch -c "${branchName}"
         git reset --hard main
         
-        /copilot-ops generate --request 'this will be the prompt' --write --openai-url 'https://api.openai.com'
+        /copilot-ops generate --request $(params.USER_INPUT) --write --openai-url 'https://api.openai.com'
         # echo blah blah > david.david
 
         git add .
