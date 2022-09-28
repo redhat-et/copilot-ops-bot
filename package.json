@@ -19,7 +19,8 @@
     "@operate-first/probot-metrics": "1.0.0",
     "es": "^0.8.0",
     "octokit-plugin-create-pull-request": "^3.12.2",
-    "probot": "^12.2.5"
+    "probot": "^12.2.5",
+    "smee-client": "^1.2.3"
   },
   "devDependencies": {
     "@semantic-release/changelog": "6.0.1",
@@ -36,7 +37,6 @@
     "nock": "13.2.7",
     "nodemon": "^2.0.19",
     "prettier": "2.7.1",
-    "smee-client": "^1.2.3",
     "ts-jest": "^28.0.5",
     "ts-node": "^10.9.1",
     "typescript": "^4.7.4"
