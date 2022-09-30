@@ -17,8 +17,9 @@ spec:
   - name: 'USER_INPUT'
     type: string
   steps:
-    - image: 'quay.io/copilot-ops/copilot-ops:local-build'
+    - image: 'quay.io/copilot-ops/copilot-ops:demo-settings'
       name: 'copilot-ops-execution'
+      imagePullPolicy: Always
       env: 
         - name: ORG_NAME
           valueFrom:
@@ -41,6 +42,67 @@ spec:
               name: openai
               key: org_id
       script: |
+        ######################################## 
+        # Creates a randomly-generated saying.
+        # Globals:
+        #   None
+        # Arguments:
+        #   None
+        # Returns:
+        #   (string) - The random saying
+        ######################################## 
+        getRandomSaying() {
+          copilotOpsAdjectives=(
+            "majestic"
+            "benevolent"
+            "gracious"
+            "all-knowing"
+            "exalted"
+            "distinguished"
+            "great"
+            "glorious"
+            "marvelous"
+            "awe-inspiring"
+          )
+
+          actionSuffixes=(
+            "miraculously solved all of your problems"
+            "granted you a solution"
+            "supplied a fix to your predicament"
+            "graced you with its infinite knowledge"
+            "blessed you with a stroke of Kubernetes wisdom"
+            "delivered a YAML ailment for your development desires"
+          )
+          
+          adjectiveLength=${#copilotOpsAdjectives[@]}
+          randomAdjectiveIdx=$(($RANDOM % $adjectiveLength))
+          randomAdjective=${copilotOpsAdjectives[${randomAdjectiveIdx}]}
+        
+          suffixLength=${#actionSuffixes[@]}
+          randomSuffixIdx=$(($RANDOM % $suffixLength))
+          randomSuffix=${actionSuffixes[${randomSuffixIdx}]}
+          
+          fullStatement="The ${randomAdjective} copilot-ops bot has ${randomSuffix}"
+          echo "${fullStatement}"
+        }
+
+        ######################################## 
+        # Switches to the given branch, creating it
+        # if it doesn't exist
+        # Globals:
+        #   None
+        # Arguments:
+        #   (string) - branch name
+        # Returns:
+        #   None
+        ######################################## 
+        switchToBranch() {
+          branchName="${1}"
+          if ! [[ $(git switch "${branchName}") ]]; then
+            git switch -c "${branchName}"
+          fi
+        }
+
         branchName="copilot-ops-fix-issue-$(params.ISSUE_NUMBER)"
 
         git config --global user.email "you@example.com"
@@ -52,23 +114,38 @@ spec:
         cd $(params.REPO_NAME)
 
         git remote -v
-
-        git switch -c "${branchName}"
+        switchToBranch "${branchName}"
         git reset --hard main
-        
-        /copilot-ops generate --request $(params.USER_INPUT) --write --openai-url 'https://api.openai.com'
-        # echo blah blah > david.david
+
+        echo "parsing user request"
+        userRequest="$(params.USER_INPUT)" 
+        echo "user request: '${userRequest}'"
+        /copilot-ops generate --request "${userRequest}" --backend gpt-3
+        echo "generated a response"
+
+        randomSaying=$(getRandomSaying)
 
         git add .
-        git commit -m "The glorious copilot-ops has solved all your issues"
-        git push -f --set-upstream origin "${branchName}"
+        git commit -m "${randomSaying}"
+        git push -f --force-with-lease --set-upstream origin "${branchName}"
 
-        curl -X POST \
+        prInfo=$(curl -s -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -d '{
             "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
-            "body":"Fixes #$(params.ISSUE_NUMBER) \nThis pull request was generated copilot-ops using this prompt: ",
+            "body":"Fixes #$(params.ISSUE_NUMBER)",
             "head":"'$branchName'",
             "base":"main"
-          }' https://api.github.com/repos/$ORG_NAME/$(params.REPO_NAME)/pulls
+          }' https://api.github.com/repos/$ORG_NAME/$(params.REPO_NAME)/pulls | jq '.')
+
+        echo "PR object: ${prInfo}"
+
+        # todo: create comment with pull-request number to reference
+        commentInfo=$(curl -s \
+          -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/issues/$(params.ISSUE_NUMBER)/comments \
+          -d '{"body":"Created pull-request for issue"}' | jq  '.')
+        
