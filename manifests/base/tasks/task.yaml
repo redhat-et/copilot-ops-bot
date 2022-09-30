@@ -120,7 +120,7 @@ spec:
         echo "parsing user request"
         userRequest="$(params.USER_INPUT)" 
         echo "user request: '${userRequest}'"
-        /copilot-ops generate --request "${userRequest}" --backend gpt-3
+        /copilot-ops generate --request "${userRequest}" --backend bloom --write
         echo "generated a response"
 
         randomSaying=$(getRandomSaying)
