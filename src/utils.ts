@@ -22,10 +22,6 @@ const wrapOperationWithMetrics = async (
   }
 };
 
-const regeneratePR = async () => {
-  console.log('regenerating');
-};
-
 export const parseIssueInfo = async (context: Context) => {
   try {
     const form = await parseIssueForm(context);
@@ -89,4 +85,4 @@ const generateTaskRunPayload = (
   },
 });
 
-export { regeneratePR, wrapOperationWithMetrics, generateTaskRunPayload };
+export { wrapOperationWithMetrics, generateTaskRunPayload };
