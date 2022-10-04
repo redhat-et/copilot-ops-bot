@@ -15,7 +15,7 @@
     "@octokit/core": "^3.6.0",
     "@octokit/rest": "^19.0.4",
     "@operate-first/probot-issue-form": "^1.0.0",
-    "@operate-first/probot-kubernetes": "1.0.0",
+    "@operate-first/probot-kubernetes": "1.0.2",
     "@operate-first/probot-metrics": "1.0.0",
     "es": "^0.8.0",
     "octokit-plugin-create-pull-request": "^3.12.2",
@@ -71,7 +71,11 @@
     ]
   },
   "prettier": {
-    "singleQuote": true
+    "singleQuote": true,
+		"arrowParens": "always",
+		"semi": true,
+		"tabWidth": 2,
+		"printWidth": 80
   },
   "release": {
     "branches": "main",
