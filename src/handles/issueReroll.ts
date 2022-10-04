@@ -1,5 +1,6 @@
 import { Context } from 'probot';
 import { Counter } from 'prom-client';
+
 import {
   getNamespace,
   useApi,
@@ -11,20 +12,29 @@ import {
   parseIssueInfo,
   wrapOperationWithMetrics,
   generateTaskRunPayload,
-  getBranchName,
 } from '../utils';
 
-export const handleIssueCreate = async (
+/**
+ *
+ * @param context Context object passed from the GitHub events.
+ * @param operationsTriggered
+ * @param install
+ * @returns
+ */
+export const handleReroll = async (
   context: Context,
   operationsTriggered: Counter<string>,
   install: number
 ) => {
+  // get pull-request for issue
+
   const issueInfo = await parseIssueInfo(context);
   if (!issueInfo) return; // not an issue for us
 
   const { issue_number } = issueInfo;
 
-  const head = getBranchName(issue_number);
+  const head = `copilot-ops-fix-issue-${issue_number}`;
+
   // Update token in case it expired
   console.log('updateSecret', getNamespace());
   console.log('updating secret...');

@@ -16,6 +16,8 @@ spec:
   - name: 'SECRET_NAME'
   - name: 'USER_INPUT'
     type: string
+  - name: 'PR_FLAG'
+    type: string
   steps:
     - image: 'quay.io/copilot-ops/copilot-ops:demo-settings'
       name: 'copilot-ops-execution'
@@ -110,7 +112,7 @@ spec:
 
         echo "Cloning repository..."
         # Clone repository
-        git clone https://x-access-token:$GITHUB_TOKEN@github.com/$ORG_NAME/$(params.REPO_NAME)
+        git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${ORG_NAME}/$(params.REPO_NAME)
         cd $(params.REPO_NAME)
 
         git remote -v
@@ -120,7 +122,7 @@ spec:
         echo "parsing user request"
         userRequest="$(params.USER_INPUT)" 
         echo "user request: '${userRequest}'"
-        /copilot-ops generate --request "${userRequest}" --backend bloom --write
+        /copilot-ops generate --request "${userRequest}" --backend gpt-3 --write
         echo "generated a response"
 
         randomSaying=$(getRandomSaying)
@@ -141,6 +143,9 @@ spec:
 
         echo "PR object: ${prInfo}"
 
+        # setting flag on PR
+
+
         # todo: create comment with pull-request number to reference
         commentInfo=$(curl -s \
           -X POST \
@@ -148,4 +153,5 @@ spec:
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/issues/$(params.ISSUE_NUMBER)/comments \
           -d '{"body":"Created pull-request for issue"}' | jq  '.')
+
         
