@@ -119,6 +119,15 @@ spec:
         switchToBranch "${branchName}"
         git reset --hard main
 
+        # Check for copilot config
+        if [ -f ".copilot-ops.yaml" ]
+        then
+          echo "Config file present:"
+          cat ".copilot-ops.yaml"
+        else
+          echo "Config file not found."
+        fi
+
         echo "parsing user request"
         userRequest="$(params.USER_INPUT)" 
         echo "user request: '${userRequest}'"
