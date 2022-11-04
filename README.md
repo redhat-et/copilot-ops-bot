@@ -1,40 +1,28 @@
 <p align="center">
   <a href="https://github.com/apps/copilot-ops-bot">
-    <img src="https://github.com/redhat-et/copilot-ops-bot/main/static/robot.svg" width="160" alt="Probot's logo, a cartoon robot" />
+    <img src="public/copilot-ops-logo.png" width="240" alt="Probot's logo, a cartoon robot" />
   </a>
 </p>
-<h3 align="center"><a href="https://github.com/apps/copilot-ops-bot">copilot-ops-bot</a></h3>
+<h3 align="center"><a href="https://github.com/apps/copilot-ops">copilot-ops-bot</a></h3>
 <p align="center">A Probot application which automates copilot-ops and allows users to generate pull-requests automatically based on issues.</p>
-<p align="center">
-  <a href="https://github.com/redhat-et/copilot-ops-bot/releases">
-    <img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/">
-  </a>
-  <a href="https://github.com/redhat-et/copilot-ops-bot/actions?query=workflow%3APush">
-    <img alt="Build Status" src="https://img.shields.io/github/workflow/status//Push">
-  </a>
-  <a href="https://github.com/redhat-et/copilot-ops-bot">
-    <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/">
-  </a>
-  <a href="https://github.com/redhat-et/copilot-ops-bot/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg">
-  </a>
-  <a href="https://github.com/redhat-et/copilot-ops-bot/issues?q=is%3Aissue+is%3Aopen+label%3Akind%2Fbug">
-    <img alt="Reported bugs" src="https://img.shields.io/github/issues-search/?color=red&label=reported%20bugs&query=is%3Aopen%20label%3Akind%2Fbug">
-  </a>
-  <a href="https://github.com/redhat-et/copilot-ops-bot/issues?q=is%3Aissue+is%3Aopen+label%3Akind%2Fbug">
-    <img alt="Feature requests" src="https://img.shields.io/github/issues-search/?label=feature%20requests&query=is%3Aopen%20label%3Akind%2Ffeature">
-  </a>
-</p>
 
 ---
 ## Usage
 
-Usage of the copilot-ops bot is simple: install this bot into your desired repository, add an issue template for the bot to process, and start making issues with that template!
-
-Once a new issue is created with the given template, the bot will automatically
-attempt creating a pull request and attach it to your issue once created.
-
-You can also customize the bot's behavior by creating a `.copilot-ops.yaml` file in your project's root directory.
+How to use copilot-ops:
+1. Install this bot into your desired project(s)
+1. Create an issue template at `.github/ISSUE_TEMPLATE/copilot_ops.yaml` with the following contents:
+	```yaml
+	name: Issue For Bot
+	description: File an issue report for the copilot-ops bot
+	title: "[Bot issue]: "
+	body: 
+	  - type: input
+	    id: botInput
+	    attributes:
+	      label: Input prompt for copilot-ops bot here
+	```
+1. Start making issues using the template and watch the bot do the rest!
 
 ### Processing issues
 
@@ -93,24 +81,3 @@ filesets:
 ## Contributions
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) on how to contribute.
-
----
-
-## Credit
-
-See [`ACKNOWLEDGMENTS.md`](ACKNOWLEDGMENTS.md).
-
-<p align="center">
-  <a href="https://argocd.operate-first.cloud/applications/copilot-ops-bot">
-    <img alt="ArgoCD status" src="https://argocd.operate-first.cloud/api/badge?name=copilot-ops-bot&revision=true">
-  </a><br />
-  <a href="https://console-openshift-console.apps.smaug.na.operate-first.cloud/k8s/cluster/projects/copilot-ops-bot">
-    <img alt="OpenShift namespace" src="https://img.shields.io/badge/OpenShift-copilot-ops-bot-white?logo=redhatopenshift&logoColor=white&labelColor=ee0000">
-  </a>
-  <a href="https://peribolos.operate-first.cloud">
-    <img alt="Route status" src="https://img.shields.io/website?label=Availability&url=https%3A%2F%2F%2Fhealthz">
-  </a><br />
-  <a href="https://quay.io/repository/copilot-ops/copilot-ops-bot?tab=tags">
-    <img alt="Controller image" src="https://img.shields.io/badge/Quay-redhat-et%2Fcopilot-ops-bot-blue">
-  </a>
-</p>
