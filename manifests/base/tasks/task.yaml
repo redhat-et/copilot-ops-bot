@@ -19,7 +19,7 @@ spec:
   - name: 'PR_FLAG'
     type: string
   steps:
-    - image: 'quay.io/copilot-ops/copilot-ops:demo-settings'
+    - image: 'quay.io/copilot-ops/copilot-ops:latest'
       name: 'copilot-ops-execution'
       imagePullPolicy: Always
       env: 
@@ -117,17 +117,16 @@ spec:
         ########################################
         writeFiles() {
           declare filename="${1}"
-          # loop variables
-          declare newName
-          declare newContents
-          declare -i num
 
           # write all entries to files
+          declare newName
+          declare newContents
+          declare -i num=0
           for file in $(jq '.generatedFiles[] | @base64' "${filename}" -c -r); do
             _get_prop() {
               echo "${file}" | base64 -d | jq -r "${1}"
             }
-            newName="generated-files-${num}.yaml"
+            newName="generated-file-${num}.yaml"
             newContents=$(_get_prop '.content')
             echo "${newContents}" > "${newName}"
             num=$(( num + 1 ))
@@ -146,12 +145,10 @@ spec:
         }
 
         main() {
-          echo "configuring git info"
           branchName=$(getBranchName)
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
  
-          echo "cloning repository..."
           # Clone repository
           git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${ORG_NAME}/$(params.REPO_NAME)
           cd $(params.REPO_NAME)
@@ -162,22 +159,21 @@ spec:
 
           # generate files
           declare -r outfile="results.json"
-          echo "parsing user request"
           userRequest="$(params.USER_INPUT)" 
-          echo "user request: '${userRequest}'"
           /copilot-ops generate --request "${userRequest}" --backend gpt-3  1> "${outfile}"
-          echo "writing files"
           writeFiles "${outfile}"
+          echo "contents of ${outfile}:"$(cat "${outfile}")
 
-          echo "adding files to git"
+          # cleanup outfile
+          rm "${outfile}"
+
+          # add all of the files generated
           git add .
-          echo "authoring commit"
+
           randomSaying=$(getRandomSaying)
           git commit -m "${randomSaying}"
-          echo "pushing to GitHub"
           git push -f --force-with-lease --set-upstream origin "${branchName}"
 
-          echo "creating pull request"
           prInfo=$(curl -s -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -188,9 +184,7 @@ spec:
               "base":"main"
             }' "https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/pulls" | jq '.')
  
-          echo "PR object: ${prInfo}"
           # todo: create comment with pull-request number to reference
-          echo "creating comment"
           commentInfo=$(curl -s \
             -X POST \
             -H "Accept: application/vnd.github+json" \

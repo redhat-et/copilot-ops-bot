@@ -57,49 +57,62 @@ const generateTaskRunPayload = (
   context: any,
   userInput: string,
   issueNum?: string
-) => ({
-  apiVersion: 'tekton.dev/v1beta1',
-  kind: 'TaskRun',
-  metadata: {
-    // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
-    // (not necessary for functionality, just for consistency)
-    generateName: `copilot-ops-bot-${name}-`,
-  },
-  spec: {
-    taskRef: {
+) => {
+  const issueNumber = issueNum || context.issue().issue_number;
+  let finalIssueNum: string;
+  if (typeof issueNumber !== 'string') {
+    if (typeof issueNumber === 'number') {
+      finalIssueNum = issueNumber.toString();
+    } else {
+      throw 'issueNumber is not a valid type';
+    }
+  } else {
+    finalIssueNum = issueNumber;
+  }
+  return {
+    apiVersion: 'tekton.dev/v1beta1',
+    kind: 'TaskRun',
+    metadata: {
       // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
-      // necessary for functionality
-      // name: 'copilot-ops-bot-' + name,
-      name: 'copilot-ops-task',
+      // (not necessary for functionality, just for consistency)
+      generateName: `copilot-ops-bot-${name}-`,
     },
-    params: [
-      {
-        name: 'REPO_NAME',
-        value: context.issue().repo,
+    spec: {
+      taskRef: {
+        // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
+        // necessary for functionality
+        // name: 'copilot-ops-bot-' + name,
+        name: 'copilot-ops-task',
       },
-      {
-        name: 'ISSUE_NUMBER',
-        value: issueNum || context.issue().issue_number,
-      },
-      {
-        name: 'ISSUE_OWNER',
-        value: context.issue().owner,
-      },
-      {
-        name: 'SECRET_NAME',
-        value: getTokenSecretName(context),
-      },
-      {
-        name: 'USER_INPUT',
-        value: userInput,
-      },
-      {
-        name: 'PR_FLAG',
-        value: LABEL_COPILOT_OPS_BOT,
-      },
-    ],
-  },
-});
+      params: [
+        {
+          name: 'REPO_NAME',
+          value: context.issue().repo,
+        },
+        {
+          name: 'ISSUE_NUMBER',
+          value: finalIssueNum,
+        },
+        {
+          name: 'ISSUE_OWNER',
+          value: context.issue().owner,
+        },
+        {
+          name: 'SECRET_NAME',
+          value: getTokenSecretName(context),
+        },
+        {
+          name: 'USER_INPUT',
+          value: userInput,
+        },
+        {
+          name: 'PR_FLAG',
+          value: LABEL_COPILOT_OPS_BOT,
+        },
+      ],
+    },
+  };
+};
 
 /** Returns a generated branch name which the PR is based on.
  *
