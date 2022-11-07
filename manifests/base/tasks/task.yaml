@@ -75,7 +75,7 @@ spec:
             "blessed you with a stroke of Kubernetes wisdom"
             "delivered a YAML ailment for your development desires"
           )
-          
+ 
           adjectiveLength=${#copilotOpsAdjectives[@]}
           randomAdjectiveIdx=$(($RANDOM % $adjectiveLength))
           randomAdjective=${copilotOpsAdjectives[${randomAdjectiveIdx}]}
@@ -105,62 +105,98 @@ spec:
           fi
         }
 
-        branchName="copilot-ops-fix-issue-$(params.ISSUE_NUMBER)"
+        ########################################
+        # Writes files from the generated copilot-ops
+        # JSON file into their respective locations.
+        # Globals:
+        #   None
+        # Arguments:
+        #   (string) - filename
+        # Returns:
+        #   None
+        ########################################
+        writeFiles() {
+          declare filename="${1}"
+          # loop variables
+          declare newName
+          declare newContents
+          declare -i num
 
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
+          # write all entries to files
+          for file in $(jq '.generatedFiles[] | @base64' "${filename}" -c -r); do
+            _get_prop() {
+              echo "${file}" | base64 -d | jq -r "${1}"
+            }
+            newName="generated-files-${num}.yaml"
+            newContents=$(_get_prop '.content')
+            echo "${newContents}" > "${newName}"
+            num=$(( num + 1 ))
+          done
+        }
 
-        echo "Cloning repository..."
-        # Clone repository
-        git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${ORG_NAME}/$(params.REPO_NAME)
-        cd $(params.REPO_NAME)
+        ########################################
+        # Returns the name of the current branch
+        # Globals:
+        #   ISSUE_NUMBER
+        # Returns:
+        #   Branch name
+        ########################################
+        getBranchName() {
+          echo "copilot-ops-fix-issue-$(params.ISSUE_NUMBER)"
+        }
 
-        git remote -v
-        switchToBranch "${branchName}"
-        git reset --hard main
+        main() {
+          echo "configuring git info"
+          branchName=$(getBranchName)
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+ 
+          echo "cloning repository..."
+          # Clone repository
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${ORG_NAME}/$(params.REPO_NAME)
+          cd $(params.REPO_NAME)
+  
+          git remote -v
+          switchToBranch "${branchName}"
+          git reset --hard main
 
-        # Check for copilot config
-        if [ -f ".copilot-ops.yaml" ]
-        then
-          echo "Config file present:"
-          cat ".copilot-ops.yaml"
-        else
-          echo "Config file not found."
-        fi
+          # generate files
+          declare -r outfile="results.json"
+          echo "parsing user request"
+          userRequest="$(params.USER_INPUT)" 
+          echo "user request: '${userRequest}'"
+          /copilot-ops generate --request "${userRequest}" --backend gpt-3  1> "${outfile}"
+          echo "writing files"
+          writeFiles "${outfile}"
 
-        echo "parsing user request"
-        userRequest="$(params.USER_INPUT)" 
-        echo "user request: '${userRequest}'"
-        /copilot-ops generate --request "${userRequest}" --backend gpt-3 --write
-        echo "generated a response"
+          echo "adding files to git"
+          git add .
+          echo "authoring commit"
+          randomSaying=$(getRandomSaying)
+          git commit -m "${randomSaying}"
+          echo "pushing to GitHub"
+          git push -f --force-with-lease --set-upstream origin "${branchName}"
 
-        randomSaying=$(getRandomSaying)
+          echo "creating pull request"
+          prInfo=$(curl -s -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -d '{
+              "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
+              "body":"Fixes #$(params.ISSUE_NUMBER)",
+              "head":"'$branchName'",
+              "base":"main"
+            }' "https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/pulls" | jq '.')
+ 
+          echo "PR object: ${prInfo}"
+          # todo: create comment with pull-request number to reference
+          echo "creating comment"
+          commentInfo=$(curl -s \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/issues/$(params.ISSUE_NUMBER)/comments \
+            -d '{"body":"Created pull-request for issue"}' | jq  '.')
+        }
 
-        git add .
-        git commit -m "${randomSaying}"
-        git push -f --force-with-lease --set-upstream origin "${branchName}"
-
-        prInfo=$(curl -s -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -d '{
-            "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
-            "body":"Fixes #$(params.ISSUE_NUMBER)",
-            "head":"'$branchName'",
-            "base":"main"
-          }' https://api.github.com/repos/$ORG_NAME/$(params.REPO_NAME)/pulls | jq '.')
-
-        echo "PR object: ${prInfo}"
-
-        # setting flag on PR
-
-
-        # todo: create comment with pull-request number to reference
-        commentInfo=$(curl -s \
-          -X POST \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-          https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/issues/$(params.ISSUE_NUMBER)/comments \
-          -d '{"body":"Created pull-request for issue"}' | jq  '.')
-
-        
+        main
