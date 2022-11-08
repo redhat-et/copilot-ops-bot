@@ -48,13 +48,13 @@ kubectl get pod copilot-ops-bot-copilot-ops-fix-issue-34-fhcnz-pod -o yaml
 8. Useful commands
     - npm run build
     - npm run start
-    - kubectl apply -f manifests/base/tasks/task.yaml 
-    - kubectl apply -f manifests/base/controller/secret_openai.yaml 
+    - kubectl apply -f manifests/base/tasks/task.yaml
+    - kubectl apply -f manifests/base/controller/secret_openai.yaml
     - oc login
 
     for messing with pods:
     - kubectl get pods
     - kubectl describe pod ...
     - kubectl get secrets
-    - kubectl logs ... 
+    - kubectl logs ...
     - oc get ns
