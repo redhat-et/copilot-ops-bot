@@ -140,7 +140,7 @@ export default (
   // e.g. comments are of the format: /reroll [new input]
   // where [new input] is optional
   app.on('issue_comment.created', async (context) => {
-    const { isBot, payload } = context;
+    const { isBot, payload, octokit } = context;
     const { comment, issue, repository } = payload;
     const { full_name } = repository;
 
@@ -157,9 +157,21 @@ export default (
     if (isCopilotOpsPR(issue)) {
       return;
     }
+
+    // only one command currently supported: reroll
     if (!isReroll(comment.body)) {
       console.log('nothing to do');
     }
+
+    // acknowledge comments
+    await octokit.reactions
+      .createForIssueComment({
+        comment_id: comment.id,
+        content: 'eyes',
+        owner: repository.owner.login,
+        repo: repository.name,
+      })
+      .catch((e) => console.error('could not react to comment:', e));
 
     let userInput = rerollUserInput(comment.body);
 
