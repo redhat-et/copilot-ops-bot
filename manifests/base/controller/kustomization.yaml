@@ -5,6 +5,7 @@ resources:
 - deployment.yaml
 - rolebinding.yaml
 - role.yaml
+- external_secret.yaml
 - route.yaml
 - serviceaccount.yaml
 - service.yaml
@@ -14,3 +15,4 @@ configurations:
 - .transformers.yaml
 commonLabels:
   app.kubernetes.io/component: controller
+
