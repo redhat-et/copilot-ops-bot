@@ -30,6 +30,7 @@ export default (
   //   getRouter,
   // }: { getRouter?: ((path?: string | undefined) => Router) | undefined }
 ) => {
+  console.log('this is a new file change');
   // Expose additional routes for /healthz and /metrics
   // if (!getRouter) {
   //   console.log('router is not defined')
