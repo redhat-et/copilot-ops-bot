@@ -5,7 +5,7 @@ resources:
   - ../../base
 configurations:
   - .transformers.yaml
-namespace: "copilot-ops-bot"
+namespace: "copilot-ops"
 patchesStrategicMerge:
   - route.yaml
 images:
