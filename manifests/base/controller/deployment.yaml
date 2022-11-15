@@ -34,6 +34,11 @@ spec:
             secretKeyRef:
               key: private_key
               name: controller
+        - name: WEBHOOK_PROXY_URL
+          valueFrom:
+            secretKeyRef:
+              key: webhook_proxy_url
+              name: controller
         - name: NODE_ENV
           value: "production"
         - name: LOG_LEVEL
