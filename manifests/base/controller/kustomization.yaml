@@ -6,7 +6,6 @@ resources:
 - rolebinding.yaml
 - role.yaml
 - route.yaml
-- secret.yaml
 - serviceaccount.yaml
 - service.yaml
 - servicemonitor.yaml
