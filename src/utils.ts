@@ -2,7 +2,11 @@ import { Context } from 'probot';
 import { Counter } from 'prom-client';
 import { getTokenSecretName } from '@operate-first/probot-kubernetes';
 import parseIssueForm from '@operate-first/probot-issue-form';
-import { LABEL_COPILOT_OPS_BOT, REROLL_COMMAND } from './constants';
+import {
+  LABEL_COPILOT_OPS_BOT,
+  REROLL_COMMAND,
+  COPILOT_OPS_TASK,
+} from './constants';
 
 import { Issue } from '@octokit/webhooks-types/schema';
 
@@ -82,7 +86,7 @@ const generateTaskRunPayload = (
         // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
         // necessary for functionality
         // name: 'copilot-ops-bot-' + name,
-        name: 'copilot-ops-task',
+        name: COPILOT_OPS_TASK,
       },
       params: [
         {
