@@ -3,7 +3,7 @@ kind: Task
 metadata:
   # // "copilot-ops-bot" to match the prefix in manifests/base/tasks/kustomization.yaml namePrefix
   # // (not necessary for functionality, just for consistency)
-  name: 'copilot-ops-task'
+  name: controller
 spec: 
   params:
   - name: REPO_NAME
