@@ -55,7 +55,7 @@ This will cause the bot to perform another generation of data using the
 original issue as input.
 <!-- TODO: allow input to be provided on either the issue or pull request -->
 
-### Customizing bot behavior
+<!-- ### Customizing bot behavior
 
 Bot behavior can be customized by including a `.copilot-ops.yaml` file in your project's root directory. This file can include the following customization options:
 
@@ -63,7 +63,7 @@ Bot behavior can be customized by including a `.copilot-ops.yaml` file in your p
 - **filesets:** define filesets within the config for reference in later issue labels or manually as needed.
 - **gpt3:** define a specific config for gpt-3 generations. More information can be found [here](https://github.com/djach7/copilot-ops).
 - **gptj:** define a specific config for gpt-j generations. More information can be found [here](https://github.com/djach7/copilot-ops).
-- **bloom:** define a specific config for bloom generations. More information can be found [here](https://github.com/djach7/copilot-ops).
+- **bloom:** define a specific config for bloom generations. More information can be found [here](https://github.com/djach7/copilot-ops). -->
 
 An example `.copilot-ops.yaml` configuration file:
 
