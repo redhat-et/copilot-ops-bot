@@ -5,8 +5,6 @@ resources:
   - ../../base
 configurations:
   - .transformers.yaml
-generators:
-  - .ksops.yaml
 namespace: "copilot-ops-bot-stage"
 patchesStrategicMerge:
   - route.yaml

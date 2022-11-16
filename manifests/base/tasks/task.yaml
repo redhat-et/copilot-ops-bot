@@ -36,13 +36,13 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: openai
-              key: api_key
+              name: controller
+              key: openai_api_key
         - name: OPENAI_ORG_ID
           valueFrom:
             secretKeyRef:
-              name: openai
-              key: org_id
+              name: controller
+              key: openai_org_id
       script: |
         ######################################## 
         # Creates a randomly-generated saying.

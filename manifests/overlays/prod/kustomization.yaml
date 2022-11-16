@@ -5,12 +5,10 @@ resources:
   - ../../base
 configurations:
   - .transformers.yaml
-generators:
-  - .ksops.yaml
-namespace: "copilot-ops-bot"
+namespace: "copilot-ops"
 patchesStrategicMerge:
   - route.yaml
 images:
   - name: controller
-    newName: "copilot-ops-bot"
+    newName: "quay.io/copilot-ops/copilot-ops-bot"
     newTag: v1.0.0
