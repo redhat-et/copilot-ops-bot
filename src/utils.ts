@@ -161,6 +161,16 @@ export const getIssueNumberFromPR = (body: string): number => {
   return parseInt(issueNum);
 };
 
+/** Extracts the prompt from the bare issue.
+ *
+ * @param issueBody Issue body.
+ */
+const stripPrompt = (issueBody: string): string => {
+  const promptOffset = 2;
+  const asLines = issueBody.split('\n').splice(promptOffset);
+  return asLines.join('\n');
+};
+
 export const getOriginalUserInput = async (
   issue: Issue,
   issueNumber: number,
@@ -177,7 +187,13 @@ export const getOriginalUserInput = async (
       owner: owner,
       repo: repoName,
     });
-    userInput = originalIssue.data.body || '';
+    const { body } = originalIssue.data;
+    if (typeof body === 'undefined' || body === null) {
+      userInput = '';
+    } else {
+      userInput = stripPrompt(body);
+      console.log(`parsed input for reroll: "${userInput}"`);
+    }
   }
   // parse the user input from the original issue
   else {

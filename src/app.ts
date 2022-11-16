@@ -16,7 +16,6 @@ import {
   getBranchName,
   getIssueNumber,
   getOriginalUserInput,
-  isCopilotOpsPR,
   isReroll,
   rerollUserInput,
   wrapOperationWithMetrics,
@@ -133,8 +132,10 @@ export default (
 
   app.on('issues.opened', async (context) => {
     console.log('received issue');
-    const install = context.payload.installation?.id || 0;
-    await handleIssueCreate(context, operationsTriggered, install);
+    const { payload } = context;
+    const { repository, installation } = payload;
+    const install = installation?.id || 0;
+    await handleIssueCreate(context, operationsTriggered, install, repository);
   });
 
   // e.g. comments are of the format: /reroll [new input]
@@ -153,12 +154,22 @@ export default (
       return;
     }
 
-    // is this our PR?
-    if (isCopilotOpsPR(issue)) {
+    // only two commands currently supported: reroll
+    if (comment.body.startsWith('/help')) {
+      // comment help information
+      // FIXME: make this cleaner, study what other bots do for commands
+      const helpBody =
+        'Supported commands:\n- `help`: Display this message (usage: `/help`)\n- `reroll`: Try to generate another result with the original prompt (usage: `/reroll`)\n- `reroll [text]`: Generate another result using the text input (usage: `/reroll Create a new PVC with 5Gi`)\n';
+      await octokit.issues
+        .createComment({
+          body: helpBody,
+          issue_number: issue.number,
+          owner: repository.owner.login,
+          repo: repository.name,
+        })
+        .catch((e) => console.error('could not create help comment:', e));
       return;
     }
-
-    // only one command currently supported: reroll
     if (!isReroll(comment.body)) {
       console.log('nothing to do');
     }
@@ -253,7 +264,7 @@ export default (
     await wrapOperationWithMetrics(
       deleteTokenSecret(context),
       {
-        install: context.payload.installation!.id,
+        install: context.payload.installation?.id,
         method: 'deleteSecret',
       },
       operationsTriggered
