@@ -162,6 +162,21 @@ spec:
             -d '{"body":"Created pull-request for issue"}' | jq  '.')
         }
 
+        ########################################
+        # Extracts the name of the default branch
+        # Globals:
+        #   None
+        # Arguments:
+        #   None
+        # Returns:
+        #   (string) - Default branch name
+        ########################################
+        defaultBranch() {
+          declare branchName=""
+          branchName=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+          echo "${branchName}"
+        }
+
         main() {
           branchName=$(getBranchName)
           git config --global user.email "you@example.com"
@@ -172,8 +187,9 @@ spec:
           cd $(params.REPO_NAME)
   
           git remote -v
+          declare mainBranch=$(defaultBranch)
           switchToBranch "${branchName}"
-          git reset --hard main
+          git reset --hard "${mainBranch}"
 
           # generate files
           declare -r outfile="results.json"
@@ -199,7 +215,7 @@ spec:
               "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
               "body":"Fixes #$(params.ISSUE_NUMBER)",
               "head":"'$branchName'",
-              "base":"main"
+              "base":"'"${mainBranch}"'"
             }' "https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/pulls" | jq '.')
  
         }
