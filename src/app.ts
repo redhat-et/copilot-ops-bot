@@ -1,5 +1,5 @@
-import { Probot } from 'probot';
-import { useCounter } from '@operate-first/probot-metrics';
+import { Probot } from "probot";
+import { useCounter } from "@operate-first/probot-metrics";
 import {
   APIS,
   createTokenSecret,
@@ -7,24 +7,25 @@ import {
   getNamespace,
   updateTokenSecret,
   useApi,
-} from '@operate-first/probot-kubernetes';
+} from "@operate-first/probot-kubernetes";
 
-import { LABEL_COPILOT_OPS_BOT } from './constants';
+import { LABEL_COPILOT_OPS_BOT } from "./constants";
 import {
   addBotLabel,
   generateTaskRunPayload,
   getBranchName,
   getIssueNumber,
   getOriginalUserInput,
+  isOurIssue,
   isReroll,
   rerollUserInput,
   wrapOperationWithMetrics,
-} from './utils';
+} from "./utils";
 
-import { handleIssueCreate } from './handles/issueCreate';
+import { handleIssueCreate } from "./handles/issueCreate";
 
 export default (
-  app: Probot
+  app: Probot,
   // {
   //   getRouter,
   // }: { getRouter?: ((path?: string | undefined) => Router) | undefined }
@@ -41,30 +42,29 @@ export default (
 
   // Register tracked metrics
   const numberOfInstallTotal = useCounter({
-    name: 'num_of_install_total',
-    help: 'Total number of installs received',
+    name: "num_of_install_total",
+    help: "Total number of installs received",
     labelNames: [],
   });
   const numberOfUninstallTotal = useCounter({
-    name: 'num_of_uninstall_total',
-    help: 'Total number of uninstalls received',
+    name: "num_of_uninstall_total",
+    help: "Total number of uninstalls received",
     labelNames: [],
   });
   const numberOfActionsTotal = useCounter({
-    name: 'num_of_actions_total',
-    help: 'Total number of actions received',
-    labelNames: ['install', 'action'],
+    name: "num_of_actions_total",
+    help: "Total number of actions received",
+    labelNames: ["install", "action"],
   });
   const operationsTriggered = useCounter({
-    name: 'operations_triggered',
-    help: 'Metrics for action triggered by the operator with respect to the kubernetes operations.',
-    labelNames: ['install', 'operation', 'status', 'method'],
+    name: "operations_triggered",
+    help: "Metrics for action triggered by the operator with respect to the kubernetes operations.",
+    labelNames: ["install", "operation", "status", "method"],
   });
 
   app.onAny((context) => {
     const action = (context?.payload as any)?.action;
     const install = (context?.payload as any)?.installation?.id;
-    console.log('onAny', action, install);
     if (!action || !install) {
       // console.log('bad context', context);
       return;
@@ -74,16 +74,16 @@ export default (
   });
 
   // secret is created when this event runs
-  app.on('installation.created', async (context) => {
+  app.on("installation.created", async (context) => {
     numberOfInstallTotal.labels({}).inc();
 
     // create a label to mark copilot-ops PRs
     const { octokit, payload } = context;
     const { repositories } = payload;
-    if (typeof repositories !== 'undefined') {
+    if (typeof repositories !== "undefined") {
       for (let i = 0; i < repositories.length; i++) {
-        console.log('creating label for', repositories[i].full_name);
-        const [owner, repo] = repositories[i].full_name.split('/');
+        console.log("creating label for", repositories[i].full_name);
+        const [owner, repo] = repositories[i].full_name.split("/");
         await octokit.issues
           .createLabel({
             name: LABEL_COPILOT_OPS_BOT,
@@ -93,7 +93,7 @@ export default (
           .catch(() => {
             // potential data race?
             console.error(
-              `could not create label for repository ${owner}/${repo}`
+              `could not create label for repository ${owner}/${repo}`,
             );
           });
       }
@@ -104,34 +104,34 @@ export default (
       createTokenSecret(context),
       {
         install: context.payload.installation.id,
-        method: 'createSecret',
+        method: "createSecret",
       },
-      operationsTriggered
+      operationsTriggered,
     );
   });
 
   app.onError((e) => {
-    console.log('error:', e.message);
+    console.log("error:", e.message);
     console.log(`error on event: ${e.event.name}, id: ${e.event.id}`);
   });
 
-  app.on('pull_request.opened', async (context) => {
+  app.on("pull_request.opened", async (context) => {
     const { isBot, payload } = context;
-    console.log('opened a pull request');
+    context.log.info("opened a pull request");
     console.log(`bot opened pr: ${isBot}`);
     if (isBot) {
-      console.log('bot created issue, adding labels');
+      console.log("bot created issue, adding labels");
       addBotLabel(
         context,
         payload.pull_request.number,
         payload.repository.owner.login,
-        payload.repository.name
+        payload.repository.name,
       );
     }
   });
 
-  app.on('issues.opened', async (context) => {
-    console.log('received issue');
+  app.on("issues.opened", async (context) => {
+    context.log.info("received issue");
     const { payload } = context;
     const { repository, installation } = payload;
     const install = installation?.id || 0;
@@ -140,26 +140,28 @@ export default (
 
   // e.g. comments are of the format: /reroll [new input]
   // where [new input] is optional
-  app.on('issue_comment.created', async (context) => {
+  app.on("issue_comment.created", async (context) => {
     const { isBot, payload, octokit } = context;
     const { comment, issue, repository } = payload;
     const { full_name } = repository;
 
-    console.log(
-      `a new comment was created in ${full_name} on issue #${issue.number}: ${comment.body}`
+    context.log.debug(
+      `a new comment was created in ${full_name} on issue #${issue.number}: ${comment.body}`,
     );
 
-    // bot shouldnt make any comments
-    if (isBot) {
+    // we should only respond to non-bot comments on the relevant threads
+    const shouldComment = await isOurIssue(context, issue, repository);
+    if (!shouldComment || isBot) {
+      context.log.debug("ignoring comment");
       return;
     }
 
     // only two commands currently supported: reroll
-    if (comment.body.startsWith('/help')) {
+    if (comment.body.startsWith("/help")) {
       // comment help information
       // FIXME: make this cleaner, study what other bots do for commands
       const helpBody =
-        'Supported commands:\n- `help`: Display this message (usage: `/help`)\n- `reroll`: Try to generate another result with the original prompt (usage: `/reroll`)\n- `reroll [text]`: Generate another result using the text input (usage: `/reroll Create a new PVC with 5Gi`)\n';
+        "Supported commands:\n- `help`: Display this message (usage: `/help`)\n- `reroll`: Try to generate another result with the original prompt (usage: `/reroll`)\n- `reroll [text]`: Generate another result using the text input (usage: `/reroll Create a new PVC with 5Gi`)\n";
       await octokit.issues
         .createComment({
           body: helpBody,
@@ -167,30 +169,31 @@ export default (
           owner: repository.owner.login,
           repo: repository.name,
         })
-        .catch((e) => console.error('could not create help comment:', e));
+        .catch((e) => console.error("could not create help comment:", e));
       return;
     }
     if (!isReroll(comment.body)) {
-      console.log('nothing to do');
+      context.log.debug("no other command selected");
+      return;
     }
 
     // acknowledge comments
     await octokit.reactions
       .createForIssueComment({
         comment_id: comment.id,
-        content: 'eyes',
+        content: "eyes",
         owner: repository.owner.login,
         repo: repository.name,
       })
-      .catch((e) => console.error('could not react to comment:', e));
+      .catch((e) => context.log.error("could not react to comment: %s", e));
 
     let userInput = rerollUserInput(comment.body);
 
     // determine the issue number
     const issueNumber = getIssueNumber(issue);
-    if (typeof issueNumber === 'undefined') {
-      console.error(
-        `could not get original issueNumber from issue #${issue.number}`
+    if (typeof issueNumber === "undefined") {
+      context.log.error(
+        `could not get original issueNumber from issue #${issue.number}`,
       );
       return;
     }
@@ -200,10 +203,10 @@ export default (
       issueNumber,
       context,
       payload.repository.owner.login,
-      payload.repository.name
+      payload.repository.name,
     );
-    if (userInput === '') {
-      console.error('could not parse user input');
+    if (userInput === "") {
+      context.log.error("could not parse user input");
       return;
     }
     const head = getBranchName(issueNumber);
@@ -211,48 +214,53 @@ export default (
     const install = context.payload.installation?.id || 0;
     await wrapOperationWithMetrics(
       updateTokenSecret(context).catch((e) => {
-        console.log('caught error while updating token: ', e);
+        context.log.error("caught error while updating token: %s", e);
       }),
       {
         install,
-        method: 'updateSecret',
+        method: "updateSecret",
       },
-      operationsTriggered
+      operationsTriggered,
     )
       .then(() => {
-        console.log('secret successfully updated');
+        context.log.debug("secret successfully updated");
       })
       .catch((e) => {
-        console.log('error updating token: ', e);
+        context.log.debug("error updating token: %s", e);
       });
 
     // Trigger example taskrun
-    console.log('scheduleTaskRun', getNamespace());
+    context.log.debug("scheduleTaskRun in namespace: %s", getNamespace());
     await wrapOperationWithMetrics(
       useApi(APIS.CustomObjectsApi).createNamespacedCustomObject(
-        'tekton.dev',
-        'v1beta1',
+        "tekton.dev",
+        "v1beta1",
         getNamespace(),
-        'taskruns',
-        generateTaskRunPayload(head, context, userInput, issueNumber.toString())
+        "taskruns",
+        generateTaskRunPayload(
+          head,
+          context,
+          userInput,
+          issueNumber.toString(),
+        ),
       ),
       {
         install,
-        method: 'scheduleTaskRun',
+        method: "scheduleTaskRun",
       },
-      operationsTriggered
+      operationsTriggered,
     );
   });
 
-  app.on('installation.deleted', async (context) => {
+  app.on("installation.deleted", async (context) => {
     numberOfUninstallTotal.labels({}).inc();
     const { payload, octokit } = context;
     const { repositories } = payload;
     // clean up labels
-    if (typeof repositories !== 'undefined') {
+    if (typeof repositories !== "undefined") {
       for (let i = 0; i < repositories.length; i++) {
-        console.log('creating label for', repositories[i].full_name);
-        const [owner, repo] = repositories[i].full_name.split('/');
+        context.log.info("creating label for '%s'", repositories[i].full_name);
+        const [owner, repo] = repositories[i].full_name.split("/");
         await octokit.issues.deleteLabel({
           name: LABEL_COPILOT_OPS_BOT,
           owner: owner,
@@ -265,9 +273,9 @@ export default (
       deleteTokenSecret(context),
       {
         install: context.payload.installation?.id,
-        method: 'deleteSecret',
+        method: "deleteSecret",
       },
-      operationsTriggered
+      operationsTriggered,
     );
   });
 };

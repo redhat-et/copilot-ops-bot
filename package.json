@@ -71,11 +71,13 @@
     ]
   },
   "prettier": {
-    "singleQuote": true,
+    "singleQuote": false,
     "arrowParens": "always",
     "semi": true,
     "tabWidth": 2,
-    "printWidth": 80
+    "printWidth": 80,
+		"trailingComma": "all",
+		"useTabs": false
   },
   "release": {
     "branches": "main",
