@@ -177,10 +177,50 @@ spec:
           echo "${branchName}"
         }
 
+        ########################################
+        # Create a pull request to the given repository.
+        # Globals:
+        #   GITHUB_TOKEN
+        #   ORG_NAME
+        # Arguments:
+        #   (string) - Branch Name
+        #   (string) - Main Branch Name
+        #   (string) - Issue Number
+        #   (string) - Issue Owner
+        #   (string) - Repo Name
+        # Returns:
+        #   PR Object as JSON
+        ########################################
+        createPR() {
+          declare branchName="${1}"
+          declare mainBranchName="${2}"
+          declare issueNumber="${3}"
+          declare issueOwner="${4}"
+          declare repoName="${5}"
+
+          # set the PR info
+          declare title="Fixes issue #${issueNumber} by ${issueOwner}"
+          declare body="Fixes #${issueNumber}"
+          declare URL="https://api.github.com/repos/${ORG_NAME}/${repoName}/pulls"
+
+          # make the PR
+          declare prInfo=$(curl -s -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -d '{
+              "title":"'"${title}"'", 
+              "body":"'"${body}"'",
+              "head":"'"${branchName}"'",
+              "base":"'"${mainBranchName}"'"
+            }' "${URL}" | jq '.')
+          echo "${prInfo}"
+        }
+
+
         main() {
           branchName=$(getBranchName)
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
+          git config --global user.email "copilot-ops@example.com"
+          git config --global user.name "Copilot Ops Bot"
  
           # Clone repository
           git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${ORG_NAME}/$(params.REPO_NAME)
@@ -208,16 +248,8 @@ spec:
           git commit -m "${randomSaying}"
           git push -f --force-with-lease --set-upstream origin "${branchName}"
 
-          prInfo=$(curl -s -X POST \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -d '{
-              "title":"Fixes issue #'$(params.ISSUE_NUMBER)' by '$(params.ISSUE_OWNER)' with copilot-ops", 
-              "body":"Fixes #$(params.ISSUE_NUMBER)",
-              "head":"'$branchName'",
-              "base":"'"${mainBranch}"'"
-            }' "https://api.github.com/repos/${ORG_NAME}/$(params.REPO_NAME)/pulls" | jq '.')
- 
+          declare prObject=$(createPR "${branchName}" "${mainBranch}" "$(params.ISSUE_NUMBER)" "$(params.ISSUE_OWNER)" "$(params.REPO_NAME)")
+          echo "response from github: ${prObject}"
         }
 
         main
