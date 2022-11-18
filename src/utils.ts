@@ -264,7 +264,8 @@ export const isOurIssue = async (
 ): Promise<boolean> => {
   const { octokit } = context;
   if (typeof issue.pull_request !== "undefined") {
-    return isCopilotOpsPR(issue);
+    const ourPR = isCopilotOpsPR(issue);
+    return ourPR;
   }
 
   // is this is a related thread?
@@ -276,7 +277,6 @@ export const isOurIssue = async (
     })
     .then((d) => d.data);
   if (typeof data === "undefined") {
-    context.log.debug("data was undefined, returning false");
     return false;
   }
   // select the bot
@@ -286,10 +286,7 @@ export const isOurIssue = async (
       (v.user?.login === COPILOT_OPS_BOT ||
         v.user?.login === COPILOT_OPS_BOT_DEV),
   );
-  const ourIssue = botConfirm.length !== 0;
-  context.log.debug("botConfirm list: %j", botConfirm);
-  context.log.debug("isOurIssue? %s", ourIssue);
-  return ourIssue;
+  return botConfirm.length === 0;
 };
 
 export { wrapOperationWithMetrics, generateTaskRunPayload };
