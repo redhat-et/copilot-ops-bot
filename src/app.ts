@@ -11,7 +11,6 @@ import {
 
 import { LABEL_COPILOT_OPS_BOT } from "./constants";
 import {
-  addBotLabel,
   generateTaskRunPayload,
   getBranchName,
   getIssueNumber,
@@ -82,7 +81,7 @@ export default (
     const { repositories } = payload;
     if (typeof repositories !== "undefined") {
       for (let i = 0; i < repositories.length; i++) {
-        console.log("creating label for", repositories[i].full_name);
+        context.log.info("creating label for", repositories[i].full_name);
         const [owner, repo] = repositories[i].full_name.split("/");
         await octokit.issues
           .createLabel({
@@ -92,7 +91,7 @@ export default (
           })
           .catch(() => {
             // potential data race?
-            console.error(
+            context.log.error(
               `could not create label for repository ${owner}/${repo}`,
             );
           });
@@ -113,21 +112,6 @@ export default (
   app.onError((e) => {
     console.log("error:", e.message);
     console.log(`error on event: ${e.event.name}, id: ${e.event.id}`);
-  });
-
-  app.on("pull_request.opened", async (context) => {
-    const { isBot, payload } = context;
-    context.log.info("opened a pull request");
-    console.log(`bot opened pr: ${isBot}`);
-    if (isBot) {
-      console.log("bot created issue, adding labels");
-      addBotLabel(
-        context,
-        payload.pull_request.number,
-        payload.repository.owner.login,
-        payload.repository.name,
-      );
-    }
   });
 
   app.on("issues.opened", async (context) => {
@@ -254,20 +238,12 @@ export default (
 
   app.on("installation.deleted", async (context) => {
     numberOfUninstallTotal.labels({}).inc();
-    const { payload, octokit } = context;
+    const { payload } = context;
     const { repositories } = payload;
-    // clean up labels
-    if (typeof repositories !== "undefined") {
-      for (let i = 0; i < repositories.length; i++) {
-        context.log.info("creating label for '%s'", repositories[i].full_name);
-        const [owner, repo] = repositories[i].full_name.split("/");
-        await octokit.issues.deleteLabel({
-          name: LABEL_COPILOT_OPS_BOT,
-          owner: owner,
-          repo: repo,
-        });
-      }
-    }
+    context.log.info(
+      "copilot ops bot has been deleted from the following repositories: %j",
+      repositories,
+    );
     // Delete secret containing the token
     await wrapOperationWithMetrics(
       deleteTokenSecret(context),

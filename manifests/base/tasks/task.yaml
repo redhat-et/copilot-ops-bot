@@ -179,6 +179,9 @@ spec:
 
         ########################################
         # Create a pull request to the given repository.
+        # If creating the PR was a success, a label is also
+        # attached to the PR indicating that it was created by this bot.
+        # 
         # Globals:
         #   GITHUB_TOKEN
         #   ORG_NAME
@@ -211,9 +214,26 @@ spec:
               "title":"'"${title}"'", 
               "body":"'"${body}"'",
               "head":"'"${branchName}"'",
-              "base":"'"${mainBranchName}"'"
+              "base":"'"${mainBranchName}"'",
+              "maintainer_can_modify": true
             }' "${URL}" | jq '.')
-          echo "${prInfo}"
+          
+          # check error condition
+          if echo "${prInfo}" | jq -e 'has("errors")' > /dev/null; then
+            echo "${prInfo}"
+          fi
+
+          # attach the bot's labels onto the created PR
+          declare prNum=$(echo "${prInfo}" | jq '.number' -r)
+          declare labelURL="https://api.github.com/repos/${ORG_NAME}/${repoName}/issues/${prNum}/labels"
+          declare labelResp=$(curl -s -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -d '{
+              "labels": ["created-by-copilot-ops"]
+            }' "${labelURL}" | jq '.')
+          
+          declare responses=$('{"pullRequestResponse": '"${prInfo}"', "labelCreationResponse": '"${labelResp}"'}' | jq '.' -c)
         }
 
 

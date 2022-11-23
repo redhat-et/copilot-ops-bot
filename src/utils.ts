@@ -10,7 +10,7 @@ import {
   COPILOT_OPS_BOT_DEV,
 } from "./constants";
 
-import { Issue, Repository } from "@octokit/webhooks-types/schema";
+import { Issue, Repository, PullRequest } from "@octokit/webhooks-types/schema";
 
 // Simple callback wrapper - executes and async operation and based on the result it inc() operationsTriggered counted
 const wrapOperationWithMetrics = async (
@@ -250,29 +250,19 @@ export const addBotLabel = async (
     .catch((e) => console.error("could not apply label:", e));
 };
 
-/**
- *
- * @param context Context object for the issue_comment.created webhook event
- * @param issue GitHub Issue object
- * @param repo Repository object
- * @returns Whether the given issue is a copilot ops bot issue.
- */
-export const isOurIssue = async (
+export const issueWasSeenByBot = async (
   context: Context,
-  issue: Issue,
-  repo: Repository,
+  issueNum: number,
+  repoName: string,
+  repoOwner: string,
 ): Promise<boolean> => {
   const { octokit } = context;
-  if (typeof issue.pull_request !== "undefined") {
-    return isCopilotOpsPR(issue);
-  }
-
   // is this is a related thread?
   const data = await octokit.reactions
     .listForIssue({
-      issue_number: issue.number,
-      owner: repo.owner.login,
-      repo: repo.name,
+      issue_number: issueNum,
+      owner: repoOwner,
+      repo: repoName,
     })
     .then((d) => d.data);
   if (typeof data === "undefined") {
@@ -292,4 +282,47 @@ export const isOurIssue = async (
   return ourIssue;
 };
 
+/**
+ *
+ * @param context Context object for the issue_comment.created webhook event
+ * @param issue GitHub Issue object
+ * @param repo Repository object
+ * @returns Whether the given issue is a copilot ops bot issue.
+ */
+export const isOurIssue = async (
+  context: Context,
+  issue: Issue,
+  repo: Repository,
+): Promise<boolean> => {
+  if (typeof issue.pull_request !== "undefined") {
+    return isCopilotOpsPR(issue);
+  }
+  const wasIssueSeen = await issueWasSeenByBot(
+    context,
+    issue.number,
+    repo.name,
+    repo.owner.login,
+  );
+  return wasIssueSeen;
+};
+
 export { wrapOperationWithMetrics, generateTaskRunPayload };
+
+export const findLinkedIssueNumber = (
+  pull_request: PullRequest,
+): number | undefined => {
+  const body =
+    pull_request.body !== null ? pull_request.body.toLowerCase() : "";
+  // keywords that link a PR to issue:
+  // https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue
+  const issueRegex = new RegExp(
+    /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/,
+    "g",
+  );
+  const searchRes = issueRegex.exec(body);
+  if (searchRes === null) {
+    return undefined;
+  }
+  const issueNum = parseInt(searchRes[2]);
+  return issueNum;
+};
